@@ -1,14 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
-	"github.com/k0kubun/pp/v3"
 	"github.com/mplewis/kesdev.com/post"
+	"github.com/mplewis/kesdev.com/render"
 )
 
 func check(err error) {
@@ -53,5 +54,7 @@ func main() {
 		return posts[i].CreatedAt.After(posts[j].CreatedAt) // newest first
 	})
 
-	pp.Println(posts)
+	index := bytes.Buffer{}
+	render.Index(&index, posts)
+	fmt.Println(index.String())
 }
