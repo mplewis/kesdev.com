@@ -1,7 +1,11 @@
 <ul>
   {{ range .Stubs }}
     <li>
-      {{ .Date }}: <a href="{{ .Link }}">{{ .Title }}</a>
+      <p>
+        {{ .Date }}:
+        <a href="{{ .Link }}">{{ .PostTitle }}</a>
+      </p>
+      <blockquote>{{ .Excerpt }}</blockquote>
     </li>
   {{ end }}
 </ul>

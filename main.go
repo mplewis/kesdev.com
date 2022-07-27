@@ -1,21 +1,30 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"io"
 	"os"
+	"path"
 	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/mplewis/kesdev.com/post"
 	"github.com/mplewis/kesdev.com/render"
+	"github.com/yargevad/filepathx"
 )
 
 func check(err error) {
 	if err != nil {
 		panic(err)
 	}
+}
+
+func openWrite(path string) io.Writer {
+	os.MkdirAll(filepath.Dir(path), 0755)
+	f, err := os.OpenFile(path, os.O_RDWR|os.O_CREATE, 0755)
+	check(err)
+	return f
 }
 
 func verifyNoDuplicates(posts []post.Post) error {
@@ -33,6 +42,14 @@ func verifyNoDuplicates(posts []post.Post) error {
 		return fmt.Errorf("duplicate slugs: %s", strings.Join(dupes, ", "))
 	}
 	return nil
+}
+
+func clean() {
+	toDel, err := filepathx.Glob("dist/**/*.html")
+	check(err)
+	for _, f := range toDel {
+		check(os.Remove(f))
+	}
 }
 
 func main() {
@@ -54,7 +71,17 @@ func main() {
 		return posts[i].CreatedAt.After(posts[j].CreatedAt) // newest first
 	})
 
-	index := bytes.Buffer{}
-	render.Index(&index, posts)
-	fmt.Println(index.String())
+	clean()
+
+	f := openWrite(path.Join("dist", "index.html"))
+	check(render.Index(f, posts))
+	fmt.Println("Wrote dist/index.html")
+
+	for _, p := range posts {
+		// TODO: Configize posts path
+		dest := path.Join("dist", "post", p.Slug, "index.html")
+		f := openWrite(dest)
+		render.Post(f, p)
+		fmt.Printf("Wrote %s\n", dest)
+	}
 }

@@ -101,6 +101,10 @@ func Parse(raw io.Reader) (Post, error) {
 		return p, err
 	}
 
+	mds := string(md)
+	mds = strings.Replace(mds, excerptMark, "", -1)
+	md = []byte(mds)
+
 	buf := bytes.Buffer{}
 	if err := goldmark.Convert(md, &buf); err != nil {
 		return p, err

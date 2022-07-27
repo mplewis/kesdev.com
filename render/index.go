@@ -2,29 +2,44 @@ package render
 
 import (
 	"fmt"
-	"html/template"
 	"io"
 	"os"
 	"strings"
+	"text/template"
 
 	"github.com/mplewis/kesdev.com/post"
 )
 
+const siteName = "Kestrel Development"
 const postPathPrefix = "/post"
 const yieldContentSigil = "<!-- yield content -->"
+const dateFormatShort = "2006-01-02"
+const dateFormatLong = "2006-01-02 15:04 MST"
 
 var layout = load("templates/layout.html")
 var indexTmpl = loadTemplate("index", "templates/index.html")
+var postTmpl = loadTemplate("post", "templates/post.html")
 
-type IndexStub struct {
-	Date  string
-	Link  string
-	Title string
+type indexStub struct {
+	Date      string
+	Link      string
+	PostTitle string
+	Excerpt   string
 }
 
-type IndexArgs struct {
-	Title string
-	Stubs []IndexStub
+type postStub struct {
+	NavTitle    string
+	SiteName    string
+	PublishedAt string
+	UpdatedAt   string
+	PostTitle   string
+	Body        string
+}
+
+type indexArgs struct {
+	NavTitle string
+	SiteName string
+	Stubs    []indexStub
 }
 
 func check(err error) {
@@ -54,18 +69,28 @@ func loadTemplate(name string, path string) *template.Template {
 }
 
 func Index(dst io.Writer, posts []post.Post) error {
-	stubs := make([]IndexStub, len(posts))
+	stubs := make([]indexStub, len(posts))
 	for i, p := range posts {
-		stubs[i] = IndexStub{
-			Date:  p.CreatedAt.Format("2006-01-02"),
-			Link:  fmt.Sprintf("%s/%s", postPathPrefix, p.Slug),
-			Title: p.Title,
+		stubs[i] = indexStub{
+			Date:      p.CreatedAt.Format(dateFormatShort),
+			Link:      fmt.Sprintf("%s/%s", postPathPrefix, p.Slug),
+			PostTitle: p.Title,
+			Excerpt:   p.Excerpt,
 		}
 	}
-
-	args := IndexArgs{
-		Title: "Kestrel Development",
-		Stubs: stubs,
-	}
+	args := indexArgs{NavTitle: siteName, SiteName: siteName, Stubs: stubs}
 	return indexTmpl.Execute(dst, args)
+}
+
+func Post(dst io.Writer, p post.Post) error {
+	const emDash = "—" // make linter happy
+	stub := postStub{
+		NavTitle:    fmt.Sprintf("%s %s %s", p.Title, emDash, siteName),
+		SiteName:    siteName,
+		PublishedAt: p.CreatedAt.Format(dateFormatLong),
+		UpdatedAt:   p.UpdatedAt.Format(dateFormatLong),
+		PostTitle:   p.Title,
+		Body:        p.HTML,
+	}
+	return postTmpl.Execute(dst, stub)
 }
