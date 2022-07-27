@@ -1,11 +1,13 @@
 package post
 
 import (
+	"bytes"
 	"errors"
 	"io"
 	"time"
 
 	fmlib "github.com/adrg/frontmatter"
+	"github.com/yuin/goldmark"
 )
 
 type Post struct {
@@ -30,7 +32,7 @@ func (p *Post) Validate() error {
 }
 
 func (p *Post) GenerateSlug() string {
-	return p.Title
+	return p.Title // TODO
 }
 
 func (p *Post) GenerateExcerpt() string {
@@ -56,13 +58,20 @@ func Parse(raw io.Reader) (Post, error) {
 	if err != nil {
 		return p, err
 	}
+
+	buf := bytes.Buffer{}
+	if err := goldmark.Convert(md, &buf); err != nil {
+		return p, err
+	}
+	p.HTML = buf.String()
+
 	if err := p.Fill(); err != nil {
 		return p, err
 	}
-	// TODO: convert to HTML
-	p.HTML = string(md)
+
 	if err := p.Validate(); err != nil {
 		return p, err
 	}
+
 	return p, nil
 }
