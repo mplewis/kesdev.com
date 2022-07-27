@@ -4,9 +4,12 @@ import (
 	"bytes"
 	"errors"
 	"io"
+	"regexp"
+	"strings"
 	"time"
 
 	fmlib "github.com/adrg/frontmatter"
+	"github.com/microcosm-cc/bluemonday"
 	"github.com/yuin/goldmark"
 )
 
@@ -20,6 +23,11 @@ type Post struct {
 	HTML        string
 	Excerpt     string
 }
+
+const excerptMark = "✂️"
+const excerptLength = 200 // characters
+
+var wsMatcher = regexp.MustCompile(`\s+`)
 
 func (p *Post) Validate() error {
 	if p.Title == "" {
@@ -35,8 +43,32 @@ func (p *Post) GenerateSlug() string {
 	return p.Title // TODO
 }
 
-func (p *Post) GenerateExcerpt() string {
-	return p.HTML // TODO
+func generateExcerpt(html string) string {
+	pcy := bluemonday.StrictPolicy()
+	text := pcy.Sanitize(html)
+	text = wsMatcher.ReplaceAllString(text, " ")
+
+	if strings.Contains(text, excerptMark) {
+		return strings.TrimSpace(strings.Split(text, excerptMark)[0])
+	}
+
+	charCount := 0
+	excerpt := []string{}
+	all := true
+	for _, word := range strings.Split(text, " ") {
+		if charCount+len(word) > excerptLength {
+			all = false
+			break
+		}
+		excerpt = append(excerpt, word)
+		charCount += len(word) + 1
+	}
+
+	body := strings.Join(excerpt, " ")
+	if !all {
+		body += "…"
+	}
+	return body
 }
 
 func (p *Post) Fill() error {
@@ -47,7 +79,7 @@ func (p *Post) Fill() error {
 		p.PublishedAt = p.CreatedAt
 	}
 	if p.Excerpt == "" {
-		p.Excerpt = p.GenerateExcerpt()
+		p.Excerpt = generateExcerpt(p.HTML)
 	}
 	return nil
 }
