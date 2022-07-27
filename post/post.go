@@ -26,8 +26,10 @@ type Post struct {
 
 const excerptMark = "✂️"
 const excerptLength = 200 // characters
+const slugJoiner = "-"
 
 var wsMatcher = regexp.MustCompile(`\s+`)
+var nonSlugMatcher = regexp.MustCompile(`[^a-z0-9]+`)
 
 func (p *Post) Validate() error {
 	if p.Title == "" {
@@ -39,8 +41,11 @@ func (p *Post) Validate() error {
 	return nil
 }
 
-func (p *Post) GenerateSlug() string {
-	return p.Title // TODO
+func sanitizeSlug(title string) string {
+	title = strings.ToLower(title)
+	title = nonSlugMatcher.ReplaceAllString(title, slugJoiner)
+	title = strings.Trim(title, slugJoiner)
+	return title
 }
 
 func generateExcerpt(html string) string {
@@ -77,6 +82,11 @@ func (p *Post) Fill() error {
 	}
 	if p.PublishedAt.IsZero() {
 		p.PublishedAt = p.CreatedAt
+	}
+	if p.Slug == "" {
+		p.Slug = sanitizeSlug(p.Title)
+	} else {
+		p.Slug = sanitizeSlug(p.Slug)
 	}
 	if p.Excerpt == "" {
 		p.Excerpt = generateExcerpt(p.HTML)
