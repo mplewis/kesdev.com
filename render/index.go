@@ -83,9 +83,8 @@ func Index(dst io.Writer, posts []post.Post) error {
 }
 
 func Post(dst io.Writer, p post.Post) error {
-	const emDash = "—" // make linter happy
 	stub := postStub{
-		NavTitle:    fmt.Sprintf("%s %s %s", p.Title, emDash, siteName),
+		NavTitle:    fmt.Sprintf("%s – %s", p.Title, siteName),
 		SiteName:    siteName,
 		PublishedAt: p.CreatedAt.Format(dateFormatLong),
 		UpdatedAt:   p.UpdatedAt.Format(dateFormatLong),
