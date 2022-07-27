@@ -2,25 +2,28 @@ package post
 
 import (
 	"errors"
+	"io"
 	"time"
+
+	fmlib "github.com/adrg/frontmatter"
 )
 
 type Post struct {
-	Title       string
-	Slug        string // optional
-	Published   bool
-	CreatedAt   time.Time
-	UpdatedAt   time.Time // optional
-	PublishedAt time.Time // optional
+	Title       string    `yaml:"Title"`
+	Slug        string    `yaml:"Slug"`      // optional
+	Published   bool      `yaml:"Published"` // optional
+	CreatedAt   time.Time `yaml:"CreatedAt"`
+	UpdatedAt   time.Time `yaml:"UpdatedAt"`   // optional
+	PublishedAt time.Time `yaml:"PublishedAt"` // optional
 	HTML        string
-	Excerpt     string // optional
+	Excerpt     string
 }
 
 func (p *Post) Validate() error {
-	if p.Title != "" {
+	if p.Title == "" {
 		return errors.New("missing title")
 	}
-	if p.HTML != "" {
+	if p.HTML == "" {
 		return errors.New("missing html")
 	}
 	return nil
@@ -35,9 +38,6 @@ func (p *Post) GenerateExcerpt() string {
 }
 
 func (p *Post) Fill() error {
-	if err := p.Validate(); err != nil {
-		return err
-	}
 	if p.UpdatedAt.IsZero() {
 		p.UpdatedAt = p.CreatedAt
 	}
@@ -50,6 +50,19 @@ func (p *Post) Fill() error {
 	return nil
 }
 
-func Parse(raw string) (Post, error) {
-	return Post{}, nil
+func Parse(raw io.Reader) (Post, error) {
+	p := Post{}
+	md, err := fmlib.Parse(raw, &p)
+	if err != nil {
+		return p, err
+	}
+	if err := p.Fill(); err != nil {
+		return p, err
+	}
+	// TODO: convert to HTML
+	p.HTML = string(md)
+	if err := p.Validate(); err != nil {
+		return p, err
+	}
+	return p, nil
 }

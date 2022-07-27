@@ -1,7 +1,6 @@
 package main
 
 import (
-	"io"
 	"os"
 	"path/filepath"
 
@@ -23,9 +22,7 @@ func main() {
 		f, err := os.Open(file)
 		check(err)
 		defer f.Close()
-		b, err := io.ReadAll(f)
-		check(err)
-		p, err := post.Parse(string(b))
+		p, err := post.Parse(f)
 		check(err)
 		posts[i] = p
 	}
