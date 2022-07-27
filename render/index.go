@@ -5,12 +5,15 @@ import (
 	"html/template"
 	"io"
 	"os"
+	"strings"
 
 	"github.com/mplewis/kesdev.com/post"
 )
 
 const postPathPrefix = "/post"
+const yieldContentSigil = "<!-- yield content -->"
 
+var layout = load("templates/layout.html")
 var indexTmpl = loadTemplate("index", "templates/index.html")
 
 type IndexStub struct {
@@ -30,13 +33,24 @@ func check(err error) {
 	}
 }
 
+func load(path string) string {
+	f, err := os.Open(path)
+	check(err)
+	defer f.Close()
+	raw, err := io.ReadAll(f)
+	check(err)
+	return string(raw)
+}
+
 func loadTemplate(name string, path string) *template.Template {
 	f, err := os.Open(path)
 	check(err)
 	defer f.Close()
 	raw, err := io.ReadAll(f)
 	check(err)
-	return template.Must(template.New(name).Parse(string(raw)))
+	content := string(raw)
+	complete := strings.ReplaceAll(layout, yieldContentSigil, content)
+	return template.Must(template.New(name).Parse(complete))
 }
 
 func Index(dst io.Writer, posts []post.Post) error {
